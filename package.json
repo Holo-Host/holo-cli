@@ -18,6 +18,7 @@
     "@whi/printf": "^1.0.0",
     "@whi/prompter": "0.0.2",
     "@whi/stdlog": "^0.2.1",
+    "args2json": "0.0.3",
     "axios": "^0.19.0",
     "commander": "^2.20.0",
     "rpc-websockets": "^4.5.1",

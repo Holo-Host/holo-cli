@@ -7,7 +7,7 @@ const assert				= require('assert');
 const expect				= require('chai').expect;
 
 const { Server }			= require('rpc-websockets');
-const { main, close }			= require('../../main.js');
+const { main, close_connections }	= require('../../main.js');
 
 describe("main: subcommand 'call'", () => {
 
@@ -57,7 +57,8 @@ describe("main: subcommand 'call'", () => {
 	});
 	
 	var data			= await main([
-	    'node', 'script.js', 'call', 'instance_id', 'zome_name', 'func_name',
+	    'node', 'script.js', 'call',
+	    'instance_id', 'zome_name', 'func_name',
 	]);
 	log.info("Data: %s", data );
 
@@ -66,9 +67,42 @@ describe("main: subcommand 'call'", () => {
 	expect( data.success	).to.be.true;
     });
 
+    it("should call zome function with args", async () => {
+	next_call(async (req) => {
+	    expect( req			).to.be.an('object');
+	    expect( req.function	).to.equal('register_as_host');
+	    expect( req.args		).to.be.an('object');
+
+	    return {
+		"Ok": "QmYoRREk74vytXT3LJtPNZB8keaRQfFGC4Tbg8uTrSdcjU"
+	    };
+	});
+	
+	var data			= await main([
+	    'node', 'script.js', 'call',
+	    'holo-hosting-app', 'host', 'register_as_host', "host_doc.kyc_proof="
+	]);
+	log.info("Data: %s", data );
+
+	expect( data		).to.be.an('object');
+	expect( data.code	).to.be.undefined;
+	expect( data.Ok		).to.equal('QmYoRREk74vytXT3LJtPNZB8keaRQfFGC4Tbg8uTrSdcjU');
+    });
+
+    it("should call admin methods", async () => {
+	try {
+	    await main([
+		'node', 'script.js', 'admin', 'admin/dna/list',
+	    ]);
+	    throw Error('Should not get this far');
+	} catch ( err ) {
+	    expect( err.message ).to.match(/not implemented/)
+	}
+    });
+
     after(async () => {
 	log.normal("Closing sockets");
-	close( 0 );
+	close_connections( 0 );
 	
 	log.normal("Closing test servers");
 	
