@@ -2,7 +2,7 @@
   "name": "holo-cli",
   "version": "0.0.1",
   "description": "Command line tool for Holo developers",
-  "main": "main.js",
+  "main": "cli.js",
   "scripts": {
     "test": "mocha --recursive ./tests/",
     "test:unit": "DEBUG_LEVEL=debug mocha ./tests/unit/",
@@ -17,7 +17,7 @@
   "dependencies": {
     "@whi/printf": "^1.0.0",
     "@whi/prompter": "0.0.2",
-    "@whi/stdlog": "^0.2.1",
+    "@whi/stdlog": "^0.3.0",
     "args2json": "0.0.3",
     "axios": "^0.19.0",
     "commander": "^2.20.0",
@@ -25,6 +25,6 @@
     "sprintf-js": "^1.1.2"
   },
   "bin": {
-    "holo-cli": "./main.js"
+    "holo-cli": "./cli.js"
   }
 }

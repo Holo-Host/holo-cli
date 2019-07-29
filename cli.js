@@ -1,5 +1,4 @@
-// #!/usr/bin/env node
-// // -*- mode: javascript -*-
+#! /usr/bin/env node
 
 const path				= require('path');
 const log				= require('@whi/stdlog')(path.basename( __filename ), {
@@ -9,24 +8,19 @@ const log				= require('@whi/stdlog')(path.basename( __filename ), {
 const fs				= require('fs');
 const { Command }			= require('commander');
 
-const print				= require('@whi/printf').colorAlways();
+const print				= require('@whi/printf')//.colorAlways();
 const sprintf				= require('sprintf-js').sprintf;
 const prompter				= require('@whi/prompter');
 
 const axios				= require('axios');
 
 const { call_conductor,
-	open_connections,
-	close_connections,
-	client_config,
         clients }			= require('./call_conductor.js');
 
+const config				= require('./config.js');
+config.register_logger( log );
 
 
-function exit( status ) {
-    close_connections();
-    process.exit( status );
-}
 
 function main ( argv ) {
     return new Promise((f,r) => {
@@ -38,16 +32,16 @@ function main ( argv ) {
 	const commander			= new Command();
 
 	commander
-	    .version('0.1.0')
+	    .version( config.version )
 	    .option('-v, --verbose', 'Increase logging verbosity', increaseVerbosity, 0);
 
 	commander
 	    .command('call <instance> <zome> <func> [args...]')
-	    .description("")
-	    .option('-p, --primary [column]', 'Set the primary column to order results by')
+	    .description("Manually call a conductor's instance->zome->function( ...args )")
 	    .action(async function ( instance, zome, func, args ) {
 		try {
 		    var data		= await run_command('call', [ instance, zome, func, args ], this, this.parent);
+
 		    f( data );
 		} catch ( err ) {
 		    console.error( err );
@@ -55,48 +49,58 @@ function main ( argv ) {
 		}
 	    });
 
-	commander
-	    .command('admin method [args...]')
-	    .description("")
-	    .option('-p, --primary [column]', 'Set the primary column to order results by')
-	    .action(async function ( method, args ) {
-		r( new Error("Have not implemented administrative calls yet") );
-	    });
+	const submodules		= {
+	    "admin":		"Administrative commands to conductor",
+	    "provider":		"Provider controls and management",
+	    "host":		"Manage host details and enabled apps",
+	    "happ":		"hApp store controls",
+	}
+	
+	for (let [cmd,desc] of Object.entries(submodules) ) {
+	    commander.command( cmd, desc );
+	}
 
-	commander.parse( argv );
-
-	// console.log( commander );
-
+	
 	function help_and_exit() {
 	    commander.help();
 	    f( 0 );
 	}
 
-	// Catch undefined subcommands
-	if ( typeof commander.args[commander.args.length-1] === 'string' ) {
-	    print( `Error: Unknown subcommand '${commander.args[0]}'` );
-	    help_and_exit()
-	}
-	
+	commander.on('command:*', function () {
+	    // This fires even when there is a registered sub command so we have to check if it is a
+	    // valid command.
+	    if ( Object.keys( submodules ).includes( commander.args[0] ) ) {
+		
+		// Forward verbosity argument to submodule
+		if ( commander.verbose )
+		    commander.args.push('-' + 'v'.repeat(commander.verbose) );
+		
+		return;
+	    }
+	    
+	    print('Invalid command: %s', commander.args.join(' '));
+	    help_and_exit();
+	});
+
+	log.silly("argv: %s", argv );
+	commander.parse( argv );
+
+	// console.log( commander );
     });
 }
 
 
 async function run_command(command, args, cmdopts, opts) {
     // Set logging verbosity for console transport
-    if ( process.env.DEBUG_LEVEL )
-	print("Log level set to %d:%s", opts.verbose || 0, process.env.DEBUG_LEVEL );
-    else {
-	log.transports[0].setLevel( opts.verbose );
-    }
-
-    await open_connections();
+    config.set_log_level( opts.verbose );
+    
+    await clients.open_connections();
     
     log.debug("Running subcommand '%s'", command);
     try {
 	switch( command ) {
 	case 'call':
-	    return call_conductor( clients.master, args );
+	    return call_conductor( clients.active.master, args );
 	    break;
 	}
     } catch (err) {
@@ -105,15 +109,16 @@ async function run_command(command, args, cmdopts, opts) {
     }
 }
 
+
 if ( typeof require != 'undefined' && require.main == module ) {
-    main( process.argv ).then( (status) => {
-	exit( status )
-    });
+    main( process.argv )
+	.then( config.main_resolve, config.main_reject )
+	.catch( config.show_error );
 }
 else {
     module.exports = {
 	main,
-	close_connections,
+	"close_connections": clients.close_connections,
     }
 }
 

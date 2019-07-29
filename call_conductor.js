@@ -6,64 +6,10 @@ const log				= require('@whi/stdlog')(path.basename( __filename ), {
 const { Client }			= require('rpc-websockets');
 const args2json				= require('args2json');
 
-const clients				= {};
-const client_config			= {
-    "master":	1111,
-    "public":	2222,
-    "internal":	3333,
-};
+const clients				= require('./clients.js');
+const config				= require('./config.js');
+config.register_logger( log );
 
-
-function open_connection ( name, port=80 ) {
-    const client			= new Client( `ws://localhost:${port}` );
-
-    client.name				= name;
-    
-    Object.defineProperty( client, 'readyState', {
-	get() {
-	    return this.socket.readyState;
-	},
-    });
-
-    clients[name]			= client;
-    
-    return new Promise((f,r) => {
-	client.on('open', function () {
-	    f( client );
-	});
-	client.on('error', function ( err ) {
-	    r( err );
-	});
-    });
-}
-
-async function open_connections() {
-    
-    if ( Object.keys( clients ).length === 0 ) {
-	log.normal('Connecting WebSocket clients: master, public, internal' );
-
-	await Promise.all(
-	    Object.entries( client_config ).map(( [name,port] ) => {
-		return open_connection( name, port );
-	    })
-	);
-    } else {
-	log.warn("Clients already opened: %s", Object.keys( clients ) );
-    }
-    
-    log.info('Client ready state: master=%s; public=%s; internal=%s',
-	     ...Object.values( clients ).map(ws => ws.readyState) );
-
-    return clients;
-}
-
-function close_connections() {
-    log.info("Closing %d websocket clients", Object.keys( clients ).length );
-    for ( let ws of Object.values( clients ) ) {
-	log.debug('Closing websocket: %s', ws.address );
-	ws.close();
-    }
-}
 
 
 async function call_conductor( client, args ) {
@@ -76,26 +22,40 @@ async function call_conductor( client, args ) {
 	    data			= await client.call( cmd );
 	}
 	else if ( args.length === 2 ) {
-	    const [cmd,params]		= args;
+	    const [cmd]			= args;
+	    const params		= Array.isArray( args[1] ) ? args2json( args[1] ) : args[1] || {};
+	    
 	    data			= await client.call( cmd, params );
 	}
 	else if ( args.length === 3 || args.length === 4 ) {
 	    const [inst,zome,func]	= args;
-	    const params		= args2json( args[3] );
+	    const params		= Array.isArray( args[3] ) ? args2json( args[3] ) : args[3] || {};
 	    
-	    data			= await client.call('call', {
+	    const payload		= {
 		"instance_id":	inst,
 		"zome":		zome,
 		"function":	func,
 		"args":		params,
-	    });
+	    };
+	    
+	    log.debug("Sending rpc method 'call' with %s", payload );
+	    data			= await client.call('call', payload );
 	}
 	else {
 	    log.error("Unknown command: %s", args );
 	}
-	
+
+	try {
+	    data			= JSON.parse( data );
+	} catch (err) {
+	    log.debug("Response is not JSON: response type %s", typeof data );
+	}
+
 	return data;
     } catch (err) {
+	if ( err instanceof Error )
+	    err				= String(err);
+	
 	log.error("Conductor call returned error: %s", err );
 	return err;
     }
@@ -103,8 +63,5 @@ async function call_conductor( client, args ) {
 
 module.exports = {
     call_conductor,
-    open_connections,
-    close_connections,
     clients,
-    client_config,
 };
