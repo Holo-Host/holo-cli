@@ -21,6 +21,7 @@
     "args2json": "0.0.3",
     "axios": "^0.19.0",
     "commander": "^2.20.0",
+    "download-file": "^0.1.5",
     "rpc-websockets": "^4.5.1",
     "sprintf-js": "^1.1.2"
   },

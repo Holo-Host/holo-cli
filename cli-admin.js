@@ -3,14 +3,12 @@ const log				= require('@whi/stdlog')(path.basename( __filename ), {
     level: process.env.DEBUG_LEVEL || 'fatal',
 });
 
+const os				= require('os');
 const fs				= require('fs');
 const { Command }			= require('commander');
 
 const print				= require('@whi/printf').colorAlways();
-const sprintf				= require('sprintf-js').sprintf;
-const prompter				= require('@whi/prompter');
-
-const axios				= require('axios');
+const download_file			= require('download-file');
 
 const { call_conductor,
         clients }			= require('./call_conductor.js');
@@ -95,6 +93,21 @@ function main ( argv ) {
 		}
 	    });
 
+	commander
+	    .command('install <happ_hash>')
+	    .option('-i, --happ [id]', 'Set the hApp Store instance ID', 'happ-store')
+	    .description("Install DNAs for a specific hApp")
+	    .action(async function ( happ_hash ) {
+		try {
+		    var data		= await run_command('dna-install', [ happ_hash ], this, this.parent);
+
+		    f( data );
+		} catch ( err ) {
+		    console.error( err );
+		    r( 1 );
+		}
+	    });
+
 	
 	function help_and_exit() {
 	    commander.help();
@@ -113,6 +126,24 @@ function main ( argv ) {
 	    commander.help();
 
 	// console.log( commander );
+    });
+}
+
+
+function download( url, hash ) {
+    return new Promise(function (f,r) {
+	const options			= {
+	    directory: os.tmpdir(),
+	    filename: hash + ".dna.json",
+	};
+	const tmppath			= path.resolve( options.directory, options.filename );
+	
+	download_file( url, options, function(err) {
+	    if ( err )
+		r( err );
+	    else 
+		f( tmppath );
+	})
     });
 }
 
@@ -145,6 +176,54 @@ async function run_command(command, args, cmdopts, opts) {
 	    return call_conductor( clients.active.master, [
 		'admin/instance/' + args[0],
 	    ]);
+	    break;
+	case 'dna-install':
+	    let [happ_hash]		= args;
+	    
+	    const happ			= await call_conductor( clients.active.master, [
+		cmdopts.happ,
+		'happs',
+		'get_app',
+		{
+		    "app_hash": happ_hash,
+		}
+	    ]);
+	    log.info("%s", happ );
+	    
+	    const dnas			= happ.Ok.appEntry.dnas;
+	    const installed		= [];
+	    
+	    for (let dna of dnas) {
+		const url		= dna.location;
+		const hash		= dna.hash;
+
+		const exists		= await call_conductor( clients.active.master, [
+		    'admin/dna/list',
+		])
+
+		if ( exists.some(dna => dna.hash === hash) ) {
+		    print("Skipping %s because DNA already installed", hash );
+		    continue;
+		}
+		    
+		const tmppath		= await download( url, hash );
+		log.info("Temp DNA download: %s", tmppath );
+		
+		const resp		= await call_conductor( clients.active.master, [
+		    'admin/dna/install_from_file',
+		    {
+			"id": hash,
+			"path": tmppath,
+			"expected_hash": hash,
+		    }
+		]);
+		log.info("%s", resp );
+
+		fs.unlinkSync( tmppath );
+		
+		installed.push( resp );
+	    }
+	    return installed;
 	    break;
 	}
     } catch (err) {

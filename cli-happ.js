@@ -7,10 +7,6 @@ const fs				= require('fs');
 const { Command }			= require('commander');
 
 const print				= require('@whi/printf').colorAlways();
-const sprintf				= require('sprintf-js').sprintf;
-const prompter				= require('@whi/prompter');
-
-const axios				= require('axios');
 
 const { call_conductor,
         clients }			= require('./call_conductor.js');
