@@ -17,6 +17,7 @@ async function call_conductor( client, args ) {
 	let data;
 
 	log.info("Calling conductor with client %s: %d args", client.address, args.length );
+	log.silly("Calling conductor with client %s: %s", client.address, args );
 	if ( args.length === 1 ) {
 	    const [cmd]			= args;
 	    data			= await client.call( cmd );

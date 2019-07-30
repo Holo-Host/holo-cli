@@ -7,9 +7,9 @@ const assert				= require('assert');
 const expect				= require('chai').expect;
 
 const { Server }			= require('rpc-websockets');
-const { main, close_connections }	= require('../../cli.js');
+const { main, close_connections }	= require('../../cli-admin.js');
 
-describe("main: subcommand 'call'", () => {
+describe("main: submodule 'admin'", () => {
 
     let ws_master;
     let ws_public;
@@ -49,57 +49,34 @@ describe("main: subcommand 'call'", () => {
 	    }
 	});
 
-	// ws_master.on('connection', ( ws ) => {
-	//     console.log( ws );
-	
-	//     ws.on('message', function ( data ) {
-	// 	console.log("Master server message:", data );
-	//     });
-	// });
-	
     });
 
-    it("should call zome function", async () => {
+    it("should call admin methods", async () => {
 	next_call(async (req) => {
-	    expect( req			).to.be.an('object');
-	    expect( req.instance_id	).to.equal('instance_id');
-	    expect( req.zome		).to.equal('zome_name');
-	    expect( req.args		).to.be.an('object');
+	    expect( req			).to.be.null;
 
-	    return { "success": true };
+	    return [
+		{
+		    "id": "holo-hosting-app",
+		    "hash": null
+		},
+		{
+		    "id": "happ-store",
+		    "hash": null
+		},
+		{
+		    "id": "holofuel",
+		    "hash": null
+		},
+	    ];
 	});
 	
 	var data			= await main([
-	    'node', 'cli.js', 'call',
-	    'instance_id', 'zome_name', 'func_name',
+	    'node', 'cli.js', 'dna',
 	]);
 	log.info("Data: %s", data );
 
-	expect( data		).to.be.an('object');
-	expect( data.code	).to.be.undefined;
-	expect( data.success	).to.be.true;
-    });
-
-    it("should call zome function with args", async () => {
-	next_call(async (req) => {
-	    expect( req			).to.be.an('object');
-	    expect( req.function	).to.equal('register_as_host');
-	    expect( req.args		).to.be.an('object');
-
-	    return {
-		"Ok": "QmYoRREk74vytXT3LJtPNZB8keaRQfFGC4Tbg8uTrSdcjU"
-	    };
-	});
-	
-	var data			= await main([
-	    'node', 'cli.js', 'call',
-	    'holo-hosting-app', 'host', 'register_as_host', "host_doc.kyc_proof="
-	]);
-	log.info("Data: %s", data );
-
-	expect( data		).to.be.an('object');
-	expect( data.code	).to.be.undefined;
-	expect( data.Ok		).to.equal('QmYoRREk74vytXT3LJtPNZB8keaRQfFGC4Tbg8uTrSdcjU');
+	expect( data		).to.be.an('array');
     });
 
     after(async () => {
