@@ -47,9 +47,9 @@ function main ( argv ) {
 
 	const submodules		= {
 	    "admin":		"Administrative commands to conductor",
+	    "happ":		"hApp store controls",
 	    "provider":		"Provider controls and management",
 	    "host":		"Manage host details and enabled apps",
-	    "happ":		"hApp store controls",
 	}
 	
 	for (let [cmd,desc] of Object.entries(submodules) ) {

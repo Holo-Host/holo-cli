@@ -3,7 +3,6 @@ const log				= require('@whi/stdlog')(path.basename( __filename ), {
     level: process.env.DEBUG_LEVEL || 'fatal',
 });
 
-const os				= require('os');
 const fs				= require('fs');
 const { Command }			= require('commander');
 
@@ -96,10 +95,43 @@ function main ( argv ) {
 	commander
 	    .command('install <happ_hash>')
 	    .option('-i, --happ [id]', 'Set the hApp Store instance ID', 'happ-store')
+	    .option('-d, --directory [path]', 'Set the download directory', '~/.holochain/dnas/')
 	    .description("Install DNAs for a specific hApp")
 	    .action(async function ( happ_hash ) {
 		try {
 		    var data		= await run_command('dna-install', [ happ_hash ], this, this.parent);
+
+		    f( data );
+		} catch ( err ) {
+		    console.error( err );
+		    r( 1 );
+		}
+	    });
+
+	commander
+	    .command('uninstall <happ_hash>')
+	    .option('-i, --happ [id]', 'Set the hApp Store instance ID', 'happ-store')
+	    .description("Uninstall DNAs for a specific hApp")
+	    .action(async function ( happ_hash ) {
+		try {
+		    var data		= await run_command('dna-uninstall', [ happ_hash ], this, this.parent);
+
+		    f( data );
+		} catch ( err ) {
+		    console.error( err );
+		    r( 1 );
+		}
+	    });
+
+	commander
+	    .command('init <happ_hash>')
+	    .option('-i, --happ [id]', 'Set the hApp Store instance ID', 'happ-store')
+	    .option('--host [id]', 'Set the host agent ID', 'host-agent')
+	    .option('--interface [id]', 'Set the interface ID', 'internal-interface')
+	    .description("Install DNAs for a specific hApp")
+	    .action(async function ( happ_hash ) {
+		try {
+		    var data		= await run_command('dna-init', [ happ_hash ], this, this.parent);
 
 		    f( data );
 		} catch ( err ) {
@@ -130,19 +162,19 @@ function main ( argv ) {
 }
 
 
-function download( url, hash ) {
+function download( url, hash, download_dir ) {
     return new Promise(function (f,r) {
 	const options			= {
-	    directory: os.tmpdir(),
+	    directory: download_dir,
 	    filename: hash + ".dna.json",
 	};
-	const tmppath			= path.resolve( options.directory, options.filename );
+	const filepath			= path.resolve( options.directory, options.filename );
 	
 	download_file( url, options, function(err) {
 	    if ( err )
 		r( err );
 	    else 
-		f( tmppath );
+		f( filepath );
 	})
     });
 }
@@ -177,7 +209,7 @@ async function run_command(command, args, cmdopts, opts) {
 		'admin/instance/' + args[0],
 	    ]);
 	    break;
-	case 'dna-install':
+	case 'dna-install': {
 	    let [happ_hash]		= args;
 	    
 	    const happ			= await call_conductor( clients.active.master, [
@@ -191,40 +223,145 @@ async function run_command(command, args, cmdopts, opts) {
 	    log.info("%s", happ );
 	    
 	    const dnas			= happ.Ok.appEntry.dnas;
+	    const exists		= await call_conductor( clients.active.master, [
+		'admin/dna/list',
+	    ])
 	    const installed		= [];
 	    
 	    for (let dna of dnas) {
 		const url		= dna.location;
 		const hash		= dna.hash;
 
-		const exists		= await call_conductor( clients.active.master, [
-		    'admin/dna/list',
-		])
-
 		if ( exists.some(dna => dna.hash === hash) ) {
 		    print("Skipping %s because DNA already installed", hash );
 		    continue;
 		}
 		    
-		const tmppath		= await download( url, hash );
-		log.info("Temp DNA download: %s", tmppath );
+		const filepath		= await download( url, hash, cmdopts.directory );
+		log.info("DNA download location: %s", filepath );
 		
 		const resp		= await call_conductor( clients.active.master, [
 		    'admin/dna/install_from_file',
 		    {
 			"id": hash,
-			"path": tmppath,
+			"path": filepath,
 			"expected_hash": hash,
 		    }
 		]);
 		log.info("%s", resp );
 
-		fs.unlinkSync( tmppath );
-		
 		installed.push( resp );
 	    }
 	    return installed;
-	    break;
+	} break;
+	case 'dna-uninstall': {
+	    let [happ_hash]		= args;
+	    
+	    const happ			= await call_conductor( clients.active.master, [
+		cmdopts.happ,
+		'happs',
+		'get_app',
+		{
+		    "app_hash": happ_hash,
+		}
+	    ]);
+	    log.info("%s", happ );
+	    
+	    const dnas			= happ.Ok.appEntry.dnas;
+	    const exists		= await call_conductor( clients.active.master, [
+		'admin/dna/list',
+	    ])
+	    const uninstalled		= [];
+	    
+	    for (let dna of dnas) {
+		const hash		= dna.hash;
+
+		if ( ! exists.some(dna => dna.hash === hash) ) {
+		    print("Skipping %s because DNA is not installed", hash );
+		    continue;
+		}
+		    
+		const resp		= await call_conductor( clients.active.master, [
+		    'admin/dna/uninstall',
+		    {
+			"id": hash,
+		    }
+		]);
+		log.info("%s", resp );
+
+		uninstalled.push( resp );
+	    }
+	    return uninstalled;
+	} break;
+	case 'dna-init': {
+	    let [happ_hash]		= args;
+	    
+	    const happ			= await call_conductor( clients.active.master, [
+		cmdopts.happ,
+		'happs',
+		'get_app',
+		{
+		    "app_hash": happ_hash,
+		}
+	    ]);
+	    log.info("%s", happ );
+	    
+	    const dnas			= happ.Ok.appEntry.dnas;
+	    const exists		= await call_conductor( clients.active.master, [
+		'admin/instance/list',
+	    ])
+	    const initialized		= [];
+
+	    function expect_true ( resp ) {
+		if ( resp.success !== true )
+		    throw new Error("");
+	    }
+	    
+	    for (let dna of dnas) {
+		const id		= `servicelogger-${dna.hash}`;
+
+		if ( ! exists.some(instance => instance.id === id) ) {
+		    const resp		= await call_conductor( clients.active.master, [
+			'admin/instance/add',
+			{
+			    "id": id,
+			    "agent_id": cmdopts.host,
+			    "dna_id": dna.hash,
+			}
+		    ]);
+		    log.info("%s", resp );
+
+		    initialized.push( resp );
+		} else {
+		    print("Skipping %s because instance already initiated", id );
+		}
+		
+		log.normal("Add instance %s to interface %s", id, cmdopts.interface );
+		const enable		= await call_conductor( clients.active.master, [
+		    'admin/interface/add_instance',
+		    {
+			"interface_id": cmdopts.interface,
+			"instance_id": id,
+		    }
+		]);
+		log.debug("%s", enable );
+		
+		if ( enable.success !== true )
+		    throw new Error("Failed to add instance to interface");
+		
+		const start		= await call_conductor( clients.active.master, [
+		    'admin/instance/start',
+		    {
+			"id": id,
+		    }
+		]);
+		log.debug("%s", start );
+		
+		if ( start.success !== true )
+		    throw new Error("Failed to start instance");
+	    }
+	    return initialized;
+	} break;
 	}
     } catch (err) {
 	console.error( err );
