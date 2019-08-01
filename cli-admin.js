@@ -334,6 +334,12 @@ async function run_command(command, args, cmdopts, opts) {
 		    initialized.push( resp );
 		} else {
 		    print("Skipping %s because instance already initiated", id );
+
+		    // For now, skip the rest of the commands.
+		    // 
+		    // TODO: Make the next commands do their own checks so we don't have to skip
+		    // them.
+		    continue;
 		}
 		
 		log.normal("Add instance %s to interface %s", id, cmdopts.interface );

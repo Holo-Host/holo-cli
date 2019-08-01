@@ -65,6 +65,61 @@ function main ( argv ) {
 		}
 	    });
 
+	commander
+	    .command('enable <happ_hash>')
+	    .description("Enable a provided hApp for this host")
+	    .action(async function ( happ_hash ) {
+		try {
+		    var data		= await run_command('enable', [ happ_hash ], this, this.parent);
+
+		    f( data );
+		} catch ( err ) {
+		    console.error( err );
+		    r( 1 );
+		}
+	    });
+
+	commander
+	    .command('hostable')
+	    .description("List all available happs")
+	    .action(async function () {
+		try {
+		    var data		= await run_command('hostable', [], this, this.parent);
+
+		    f( data );
+		} catch ( err ) {
+		    console.error( err );
+		    r( 1 );
+		}
+	    });
+
+	commander
+	    .command('list')
+	    .description("List all enabled happs")
+	    .action(async function () {
+		try {
+		    var data		= await run_command('list', [], this, this.parent);
+
+		    f( data );
+		} catch ( err ) {
+		    console.error( err );
+		    r( 1 );
+		}
+	    });
+
+	commander
+	    .command('hoster <happ_hash>')
+	    .description("Get host for a hApp")
+	    .action(async function ( happ_hash ) {
+		try {
+		    var data		= await run_command('hoster', [ happ_hash ], this, this.parent);
+
+		    f( data );
+		} catch ( err ) {
+		    console.error( err );
+		    r( 1 );
+		}
+	    });
 	
 	function help_and_exit() {
 	    commander.help();
@@ -113,6 +168,40 @@ async function run_command(command, args, cmdopts, opts) {
 		opts.hha,
 		'host',
 		'is_registered_as_host',
+	    ]);
+	    break;
+	case 'enable':
+	    return call_conductor( clients.active.master, [
+		opts.hha,
+		'host',
+		'enable_app',
+		{
+		    "app_hash": args[0],
+		}
+	    ]);
+	    break;
+	case 'hostable':
+	    return call_conductor( clients.active.master, [
+		opts.hha,
+		'host',
+		'get_all_apps',
+	    ]);
+	    break;
+	case 'list':
+	    return call_conductor( clients.active.master, [
+		opts.hha,
+		'host',
+		'get_enabled_app_list',
+	    ]);
+	    break;
+	case 'enable':
+	    return call_conductor( clients.active.master, [
+		opts.hha,
+		'host',
+		'get_host_for_app',
+		{
+		    "app_hash": args[0],
+		}
 	    ]);
 	    break;
 	}
