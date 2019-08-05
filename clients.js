@@ -5,6 +5,7 @@ const log				= require('@whi/stdlog')(path.basename( __filename ), {
 
 const { Client }			= require('rpc-websockets');
 const args2json				= require('args2json');
+const print				= require('@whi/printf').colorAlways();
 
 const active				= {};
 const config				= {
@@ -31,6 +32,8 @@ function open_connection ( name, port=80 ) {
 	    f( client );
 	});
 	client.on('error', function ( err ) {
+	    if ( err.code === 'ECONNREFUSED' )
+		print("Could not connect to WebSocket %s for client '%s'.  Is conductor running?", port, name );
 	    r( err );
 	});
     });
@@ -58,9 +61,9 @@ async function open_connections() {
 
 function close_connections() {
     log.info("Closing %d websocket clients", Object.keys( active ).length );
-    for ( let ws of Object.values( active ) ) {
-	log.debug('Closing websocket: %s', ws.address );
-	ws.close();
+    for ( let client of Object.values( active ) ) {
+	log.debug('Closing websocket: %s', client.address );
+	client.close();
     }
 }
 

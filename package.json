@@ -25,5 +25,8 @@
   },
   "bin": {
     "holo": "./cli.js"
+  },
+  "engines" : {
+    "node" : ">=12.4.0"
   }
 }

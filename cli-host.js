@@ -46,8 +46,7 @@ function main ( argv ) {
 
 		    f( data );
 		} catch ( err ) {
-		    console.error( err );
-		    r( 1 );
+		    r( err );
 		}
 	    });
 
@@ -60,8 +59,7 @@ function main ( argv ) {
 
 		    f( data );
 		} catch ( err ) {
-		    console.error( err );
-		    r( 1 );
+		    r( err );
 		}
 	    });
 
@@ -74,8 +72,7 @@ function main ( argv ) {
 
 		    f( data );
 		} catch ( err ) {
-		    console.error( err );
-		    r( 1 );
+		    r( err );
 		}
 	    });
 
@@ -88,8 +85,7 @@ function main ( argv ) {
 
 		    f( data );
 		} catch ( err ) {
-		    console.error( err );
-		    r( 1 );
+		    r( err );
 		}
 	    });
 
@@ -102,8 +98,7 @@ function main ( argv ) {
 
 		    f( data );
 		} catch ( err ) {
-		    console.error( err );
-		    r( 1 );
+		    r( err );
 		}
 	    });
 
@@ -116,8 +111,7 @@ function main ( argv ) {
 
 		    f( data );
 		} catch ( err ) {
-		    console.error( err );
-		    r( 1 );
+		    r( err );
 		}
 	    });
 	

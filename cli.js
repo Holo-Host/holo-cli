@@ -29,6 +29,7 @@ function main ( argv ) {
 
 	commander
 	    .version( config.version )
+	    .option('-q, --quiet', 'Suppress all printing except for final result', false )
 	    .option('-v, --verbose', 'Increase logging verbosity', increaseVerbosity, 0);
 
 	commander
@@ -40,8 +41,7 @@ function main ( argv ) {
 
 		    f( data );
 		} catch ( err ) {
-		    console.error( err );
-		    r( 1 );
+		    r( err );
 		}
 	    });
 
@@ -63,19 +63,28 @@ function main ( argv ) {
 	}
 
 	commander.on('command:*', function () {
-	    // This fires even when there is a registered sub command so we have to check if it is a
-	    // valid command.
-	    if ( Object.keys( submodules ).includes( commander.args[0] ) ) {
+	    try {
+		// This fires even when there is a registered sub command so we have to check if it
+		// is a valid command.
+		if ( Object.keys( submodules ).includes( commander.args[0] ) ) {
+		    // Forward verbosity argument to submodule
+		    if ( commander.verbose )
+			commander.args.push('-' + 'v'.repeat(commander.verbose) );
+		    
+		    return;
+		}
 		
-		// Forward verbosity argument to submodule
-		if ( commander.verbose )
-		    commander.args.push('-' + 'v'.repeat(commander.verbose) );
-		
-		return;
+		print('Invalid command: %s', commander.args.join(' '));
+		help_and_exit();
+	    } catch ( err ) {
+		console.log( err );
+		process.exit( 1 );
 	    }
-	    
-	    print('Invalid command: %s', commander.args.join(' '));
-	    help_and_exit();
+	});
+
+	commander.outputHelp(function ( text ) {
+	    config.node_version_check( commander.quiet );
+	    return "";
 	});
 
 	log.silly("argv: %s", argv );
@@ -93,15 +102,10 @@ async function run_command(command, args, cmdopts, opts) {
     await clients.open_connections();
     
     log.debug("Running subcommand '%s'", command);
-    try {
-	switch( command ) {
-	case 'call':
-	    return call_conductor( clients.active.master, args );
-	    break;
-	}
-    } catch (err) {
-	console.error( err );
-	throw err;
+    switch( command ) {
+    case 'call':
+	return call_conductor( clients.active.master, args );
+	break;
     }
 }
 

@@ -6,6 +6,8 @@ const log				= require('@whi/stdlog')(path.basename( __filename ), {
 const { version }			= require('./package.json');
 const { close_connections }		= require('./clients.js');
 
+const print				= require('@whi/printf').colorAlways();
+
 function exit( status ) {
     close_connections();
     process.exit( status );
@@ -41,7 +43,16 @@ const config				= {
 	}
     },
     "main_reject": function ( status ) {
+	log.warn("Exited in error with status: %s", status );
 	exit( status );
+    },
+    "node_version_check": function ( quiet ) {
+	if ( parseInt( process.version.slice(1).split('.')[0] ) < 12 ) {
+	    if ( ! quiet )
+		print("WARNING!! This version of Node (%s) is not supported.  Supported versions are v12 or newer", process.version );
+	    else
+		log.warn("This tool has not been tested against this version of Node (%s)", process.version );
+	}
     },
 }
 

@@ -13,7 +13,7 @@ as `create_app`, `register_app`, or `enable_app`.
 
 Local install
 ``` bash
-npm install holo-cli
+npm install @holo-host/holo-cli
 
 // Run with
 npx holo --help
@@ -21,7 +21,7 @@ npx holo --help
 
 Global install
 ``` bash
-npm install -g holo-cli
+npm install -g @holo-host/holo-cli
 
 // Run with
 holo --help
