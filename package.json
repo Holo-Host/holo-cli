@@ -1,6 +1,6 @@
 {
   "name": "@holo-host/holo-cli",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Command line tool for Holo developers",
   "main": "cli.js",
   "scripts": {
@@ -26,7 +26,7 @@
   "bin": {
     "holo": "./cli.js"
   },
-  "engines" : {
-    "node" : ">=12.4.0"
+  "engines": {
+    "node": ">=12.4.0"
   }
 }
