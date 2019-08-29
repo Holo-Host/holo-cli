@@ -2,7 +2,7 @@
   "name": "@holo-host/holo-cli",
   "version": "0.0.2",
   "description": "Command line tool for Holo developers",
-  "main": "cli.js",
+  "main": "bin/holo",
   "scripts": {
     "test:unit:call": "DEBUG_LEVEL=debug mocha ./tests/unit/test_cli_call.js",
     "test:unit:admin": "DEBUG_LEVEL=debug mocha ./tests/unit/test_cli_admin.js",
@@ -22,9 +22,6 @@
     "download-file": "^0.1.5",
     "rpc-websockets": "^4.5.1",
     "sprintf-js": "^1.1.2"
-  },
-  "bin": {
-    "holo": "./cli.js"
   },
   "engines": {
     "node": ">=12.4.0"

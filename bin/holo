@@ -1,4 +1,4 @@
-#! /usr/bin/env node
+#!/usr/bin/env node
 
 const path				= require('path');
 const log				= require('@whi/stdlog')(path.basename( __filename ), {
@@ -11,9 +11,9 @@ const { Command }			= require('commander');
 const print				= require('@whi/printf').colorAlways();
 
 const { call_conductor,
-        clients }			= require('./call_conductor.js');
+        clients }			= require('../call_conductor.js');
 
-const config				= require('./config.js');
+const config				= require('../config.js');
 config.register_logger( log );
 
 

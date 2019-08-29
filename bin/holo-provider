@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const path				= require('path');
 const log				= require('@whi/stdlog')(path.basename( __filename ), {
     level: process.env.DEBUG_LEVEL || 'fatal',
@@ -9,18 +11,19 @@ const { Command }			= require('commander');
 const print				= require('@whi/printf').colorAlways();
 
 const { call_conductor,
-        clients }			= require('./call_conductor.js');
-const config				= require('./config.js');
+        clients }			= require('../call_conductor.js');
+const config				= require('../config.js');
 config.register_logger( log );
 
 
 function main ( argv ) {
     //
-    //     cli-happ.js --version
-    //     cli-happ.js --help
-    //     cli-happ.js create		- create a happ
-    //     cli-happ.js list		- list all happs
-    //     cli-happ.js info		- get happ details
+    //     cli-provider.js --version
+    //     cli-provider.js --help
+    //     cli-provider.js register	- register as a provider
+    //     cli-provider.js validate	- list registrations links?
+    //     cli-provider.js list	 	- list my registered apps
+    //     cli-provider.js app		- get app details or register an app
     //
     
     return new Promise((f,r) => {
@@ -33,17 +36,27 @@ function main ( argv ) {
 
 	commander
 	    .option('-v, --verbose', 'Increase logging verbosity', increaseVerbosity, 0)
-	    .option('-i, --happ [id]', 'Set the hApp Store instance ID', 'happ-store');
+	    .option('-i, --hha [id]', 'Set the Holo Hosting App instance ID', 'holo-hosting-app');
 
 	commander
-	    .command('create <title> <dna_url> <dna_hash>')
-	    .description("Create a new hApp")
-	    .option('-d, --description <text>',	'Description for new hApp', '')
-	    .option('--thumbnail <url>',	'Thumbnail URL for new hApp', '')
-	    .option('--homepage <url>',		'Homepage URL for new hApp', '')
-	    .action(async function ( title, dna_url, dna_hash ) {
+	    .command('register <kyc_proof>')
+	    .description("Register as provider in the Holo Hosting App")
+	    .action(async function ( kyc_proof ) {
 		try {
-		    var data		= await run_command('create', [ title, dna_url, dna_hash ], this, this.parent);
+		    var data		= await run_command('register', [ kyc_proof ], this, this.parent);
+
+		    f( data );
+		} catch ( err ) {
+		    r( err );
+		}
+	    });
+
+	commander
+	    .command('validate')
+	    .description("Check if this Agent is registered as a provider")
+	    .action(async function () {
+		try {
+		    var data		= await run_command('validate', [], this, this.parent);
 
 		    f( data );
 		} catch ( err ) {
@@ -53,7 +66,7 @@ function main ( argv ) {
 
 	commander
 	    .command('list')
-	    .description("List all hApps")
+	    .description("List my registerd apps")
 	    .action(async function () {
 		try {
 		    var data		= await run_command('list', [], this, this.parent);
@@ -65,11 +78,11 @@ function main ( argv ) {
 	    });
 
 	commander
-	    .command('info <hash>')
-	    .description("Get hApp details")
-	    .action(async function ( hash ) {
+	    .command('register-app <happ_hash> <domain_name>')
+	    .description("Register a hApp as hostable")
+	    .action(async function ( happ_hash, domain_name ) {
 		try {
-		    var data		= await run_command('info', [ hash ], this, this.parent);
+		    var data		= await run_command('register-app', [ happ_hash, domain_name ], this, this.parent);
 
 		    f( data );
 		} catch ( err ) {
@@ -108,39 +121,46 @@ async function run_command(command, args, cmdopts, opts) {
     log.debug("Running subcommand '%s'", command);
     try {
 	switch( command ) {
-	case 'create':
-	    let [title,dna_url,dna_hash] = args;
+	case 'register':
 	    return call_conductor( clients.active.master, [
-		opts.happ,
-		'happs',
-		'create_app',
+		opts.hha,
+		'provider',
+		'register_as_provider',
 		{
-		    "title": title,
-		    "dnas": [{
-			"location": dna_url,
-			"hash": dna_hash,
-		    }],
-		    "description": cmdopts.description,
-		    "thumbnail_url": cmdopts.thumbnail,
-		    "homepage_url": cmdopts.homepage,
+		    "provider_doc": {
+			"kyc_proof": args[0],
+		    }
 		}
+	    ]);
+	    break;
+	case 'validate':
+	    return call_conductor( clients.active.master, [
+		opts.hha,
+		'provider',
+		'is_registered_as_provider',
 	    ]);
 	    break;
 	case 'list':
 	    return call_conductor( clients.active.master, [
-		opts.happ,
-		'happs',
-		'get_all_apps',
+		opts.hha,
+		'provider',
+		'get_my_registered_app_list',
 	    ]);
 	    break;
-	case 'info':
+	case 'register-app':
+	    let [happ_hash,domain_name] = args;
 	    return call_conductor( clients.active.master, [
-		opts.happ,
-		'happs',
-		'get_app',
+		opts.hha,
+		'provider',
+		'register_app',
 		{
-		    "app_hash": args[0],
-		}
+		    "app_bundle": {
+			"happ_hash": happ_hash,
+		    },
+		    "domain_name": {
+			"dns_name": domain_name,
+		    },
+		},
 	    ]);
 	    break;
 	}
