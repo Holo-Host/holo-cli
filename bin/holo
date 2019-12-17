@@ -34,6 +34,7 @@ function main ( argv ) {
 
 	commander
 	    .command('call <instance> <zome> <func> [args...]')
+	    .option('-p, --port <port>', 'Master interface port (default: 42211)', 42211 )
 	    .description("Manually call a conductor's instance->zome->function( ...args )")
 	    .action(async function ( instance, zome, func, args ) {
 		try {
@@ -99,7 +100,9 @@ async function run_command(command, args, cmdopts, opts) {
     // Set logging verbosity for console transport
     config.set_log_level( opts.verbose );
     
-    await clients.open_connections();
+    await clients.open_connections({
+	"master": cmdopts.port,
+    });
     
     log.debug("Running subcommand '%s'", command);
     switch( command ) {

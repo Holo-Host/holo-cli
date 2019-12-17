@@ -36,6 +36,7 @@ function main ( argv ) {
 
 	commander
 	    .option('-v, --verbose', 'Increase logging verbosity', increaseVerbosity, 0)
+	    .option('-p, --port <port>', 'Admin interface port (default: 42233)', 42233 )
 	    .option('-i, --hha [id]', 'Set the Holo Hosting App instance ID', 'holo-hosting-app');
 
 	commander
@@ -116,13 +117,15 @@ async function run_command(command, args, cmdopts, opts) {
     // Set logging verbosity for console transport
     config.set_log_level( opts.verbose );
     
-    await clients.open_connections();
+    await clients.open_connections({
+	"admin": opts.port,
+    });
     
     log.debug("Running subcommand '%s'", command);
     try {
 	switch( command ) {
 	case 'register':
-	    return call_conductor( clients.active.master, [
+	    return call_conductor( clients.active.admin, [
 		opts.hha,
 		'provider',
 		'register_as_provider',
@@ -134,14 +137,14 @@ async function run_command(command, args, cmdopts, opts) {
 	    ]);
 	    break;
 	case 'validate':
-	    return call_conductor( clients.active.master, [
+	    return call_conductor( clients.active.admin, [
 		opts.hha,
 		'provider',
 		'is_registered_as_provider',
 	    ]);
 	    break;
 	case 'list':
-	    return call_conductor( clients.active.master, [
+	    return call_conductor( clients.active.admin, [
 		opts.hha,
 		'provider',
 		'get_my_registered_app_list',
@@ -149,7 +152,7 @@ async function run_command(command, args, cmdopts, opts) {
 	    break;
 	case 'register-app':
 	    let [happ_hash,domain_name] = args;
-	    return call_conductor( clients.active.master, [
+	    return call_conductor( clients.active.admin, [
 		opts.hha,
 		'provider',
 		'register_app',

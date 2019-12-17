@@ -8,10 +8,11 @@ const args2json				= require('args2json');
 const print				= require('@whi/printf').colorAlways();
 
 const active				= {};
-const config				= {
-    "master":	1111,
-    "public":	2222,
-    "internal":	3333,
+const default_clients			= {
+    "master":	42211,
+    "internal":	42222,
+    "admin":	42233,
+    "public":	42244,
 };
 
 function open_connection ( name, port=80 ) {
@@ -39,13 +40,13 @@ function open_connection ( name, port=80 ) {
     });
 }
 
-async function open_connections() {
+async function open_connections( clients = default_clients ) {
     
     if ( Object.keys( active ).length === 0 ) {
 	log.normal('Connecting WebSocket clients: master, public, internal' );
 
 	await Promise.all(
-	    Object.entries( config ).map(( [name,port] ) => {
+	    Object.entries( clients ).map(( [name,port] ) => {
 		return open_connection( name, port );
 	    })
 	);
@@ -69,7 +70,7 @@ function close_connections() {
 
 module.exports = {
     active,
-    config,
+    default_clients,
     open_connections,
     close_connections,
 };
