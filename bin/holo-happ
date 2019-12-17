@@ -35,6 +35,7 @@ function main ( argv ) {
 
 	commander
 	    .option('-v, --verbose', 'Increase logging verbosity', increaseVerbosity, 0)
+	    .option('-p, --port <port>', 'Admin interface port (default: 42233)', 42233 )
 	    .option('-i, --happ [id]', 'Set the hApp Store instance ID', 'happ-store');
 
 	commander
@@ -105,14 +106,16 @@ async function run_command(command, args, cmdopts, opts) {
     // Set logging verbosity for console transport
     config.set_log_level( opts.verbose );
     
-    await clients.open_connections();
+    await clients.open_connections({
+	"admin": opts.port,
+    });
     
     log.debug("Running subcommand '%s'", command);
     try {
 	switch( command ) {
 	case 'create':
 	    let [title,dna_url,dna_hash] = args;
-	    return call_conductor( clients.active.master, [
+	    return call_conductor( clients.active.admin, [
 		opts.happ,
 		'happs',
 		'create_app',
@@ -129,14 +132,14 @@ async function run_command(command, args, cmdopts, opts) {
 	    ]);
 	    break;
 	case 'list':
-	    return call_conductor( clients.active.master, [
+	    return call_conductor( clients.active.admin, [
 		opts.happ,
 		'happs',
 		'get_all_apps',
 	    ]);
 	    break;
 	case 'info':
-	    return call_conductor( clients.active.master, [
+	    return call_conductor( clients.active.admin, [
 		opts.happ,
 		'happs',
 		'get_app',

@@ -7,13 +7,15 @@ const assert				= require('assert');
 const expect				= require('chai').expect;
 
 const { Server }			= require('rpc-websockets');
-const { main, close_connections }	= require('../../cli.js');
+const { main, close_connections }	= require('../../bin/holo');
+
 
 describe("main: subcommand 'call'", () => {
 
     let ws_master;
-    let ws_public;
     let ws_intern;
+    let ws_admin;
+    let ws_public;
     let next_call_cb;
 
     function next_call ( cb ) {
@@ -21,9 +23,11 @@ describe("main: subcommand 'call'", () => {
     }
     
     before(async () => {
-	ws_master			= new Server({ "port": 1111 });
-	ws_public			= new Server({ "port": 2222 });
-	ws_intern			= new Server({ "port": 3333 });
+	log.info("Starting clients");
+	ws_master			= new Server({ "port": 42211 });
+	ws_intern			= new Server({ "port": 42222 });
+	ws_admin			= new Server({ "port": 42233 });
+	ws_public			= new Server({ "port": 42244 });
 
 	ws_master.register('call', async function ( data ) {
 	    log.debug("Master call: %s", data );
@@ -56,6 +60,7 @@ describe("main: subcommand 'call'", () => {
 	// 	console.log("Master server message:", data );
 	//     });
 	// });
+
 	
     });
 
@@ -70,7 +75,7 @@ describe("main: subcommand 'call'", () => {
 	});
 	
 	var data			= await main([
-	    'node', 'cli.js', 'call',
+	    'node', 'holo', 'call',
 	    'instance_id', 'zome_name', 'func_name',
 	]);
 	log.info("Data: %s", data );
@@ -92,7 +97,7 @@ describe("main: subcommand 'call'", () => {
 	});
 	
 	var data			= await main([
-	    'node', 'cli.js', 'call',
+	    'node', 'holo', 'call',
 	    'holo-hosting-app', 'host', 'register_as_host', "host_doc.kyc_proof="
 	]);
 	log.info("Data: %s", data );
@@ -105,17 +110,23 @@ describe("main: subcommand 'call'", () => {
     after(async () => {
 	log.normal("Closing sockets");
 	close_connections( 0 );
-	
-	log.normal("Closing test servers");
-	
-	await ws_master.close();
-	log.normal("Closed master server");
-	
-	await ws_public.close();
-	log.normal("Closed public server");
-	
-	await ws_intern.close();
-	log.normal("Closed intern server");
+
+	// Set timeout so that clients close before server
+	setTimeout(async () => {
+	    log.normal("Closing test servers");
+
+	    await ws_master.close();
+	    log.normal("Closed master server");
+
+	    await ws_intern.close();
+	    log.normal("Closed intern server");
+
+	    await ws_admin.close();
+	    log.normal("Closed admin server");
+
+	    await ws_public.close();
+	    log.normal("Closed public server");
+	}, 100);
     });
 
 });

@@ -7,13 +7,14 @@ const assert				= require('assert');
 const expect				= require('chai').expect;
 
 const { Server }			= require('rpc-websockets');
-const { main, close_connections }	= require('../../cli-admin.js');
+const { main, close_connections }	= require('../../bin/holo-admin');
 
 describe("main: submodule 'admin'", () => {
 
     let ws_master;
-    let ws_public;
     let ws_intern;
+    let ws_admin;
+    let ws_public;
     let next_call_cb;
 
     function next_call ( cb ) {
@@ -21,9 +22,11 @@ describe("main: submodule 'admin'", () => {
     }
     
     before(async () => {
-	ws_master			= new Server({ "port": 1111 });
-	ws_public			= new Server({ "port": 2222 });
-	ws_intern			= new Server({ "port": 3333 });
+	log.info("Starting clients");
+	ws_master			= new Server({ "port": 42211 });
+	ws_intern			= new Server({ "port": 42222 });
+	ws_admin			= new Server({ "port": 42233 });
+	ws_public			= new Server({ "port": 42244 });
 
 	ws_master.register('call', async function ( data ) {
 	    log.debug("Master call: %s", data );
@@ -72,7 +75,7 @@ describe("main: submodule 'admin'", () => {
 	});
 	
 	var data			= await main([
-	    'node', 'cli.js', 'dna',
+	    'node', 'holo', 'dna',
 	]);
 	log.info("Data: %s", data );
 
@@ -82,17 +85,23 @@ describe("main: submodule 'admin'", () => {
     after(async () => {
 	log.normal("Closing sockets");
 	close_connections( 0 );
-	
-	log.normal("Closing test servers");
-	
-	await ws_master.close();
-	log.normal("Closed master server");
-	
-	await ws_public.close();
-	log.normal("Closed public server");
-	
-	await ws_intern.close();
-	log.normal("Closed intern server");
+
+	// Set timeout so that clients close before server
+	setTimeout(async () => {
+	    log.normal("Closing test servers");
+
+	    await ws_master.close();
+	    log.normal("Closed master server");
+
+	    await ws_intern.close();
+	    log.normal("Closed intern server");
+
+	    await ws_admin.close();
+	    log.normal("Closed admin server");
+
+	    await ws_public.close();
+	    log.normal("Closed public server");
+	}, 100);
     });
 
 });

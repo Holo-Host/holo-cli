@@ -17,7 +17,7 @@ const loggers				= [];
 
 
 const config				= {
-    "config": version,
+    version,
     "register_logger": function ( log ) {
 	loggers.push( log );
     },
