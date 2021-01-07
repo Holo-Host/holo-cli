@@ -1,9 +1,8 @@
 
 const path				= require('path');
 const { AdminWebsocket,
-	AppWebsocket,
 	...sdk }			= require('@holochain/conductor-api');
-const print				= require('@whi/printf').colorAlways();
+const print				= require('@whi/printf');
 
 const { log }				= require('./index.js');
 const { ControlledError,
@@ -38,6 +37,14 @@ class AdminAPI {
     async connect () {
 	const api			= await AdminWebsocket.connect( "http://localhost:" + this.port );
 	this.api			= api;
+    }
+
+    async list_dnas () {
+	return await this.api.listDnas();
+    }
+
+    async list_cell_ids () {
+	return await this.api.listCellIds();
     }
 
     async list_active_apps () {
@@ -106,7 +113,7 @@ class AdminAPI {
     }
 
     async generate_pubkey () {
-	const pubkey		= await api.generateAgentPubKey();
+	const pubkey		= await this.api.generateAgentPubKey();
 	return pubkey;
     }
 

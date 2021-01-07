@@ -5,14 +5,14 @@ module.exports.log			= log;
 
 const path				= require('path');
 const crypto				= require('crypto');
-const print				= require('@whi/printf').colorAlways();
+const print				= require('@whi/printf');
 const { Command }			= require('commander');
 
 const config				= require('./config.js');
 const { ControlledError }		= require('./constants.js');
 
 const { admin_connection }		= require('./admin_api.js');
-// const { app_connection }		= require('./aapp_api.js');
+const { app_connection }		= require('./app_api.js');
 
 
 function increaseTotal(v, total) {
@@ -25,8 +25,13 @@ let conductor_admin_port;
 
 function prelude (handler) {
     return function ( ...args ) {
-	conductor_admin_port		= this.parent.port;
 	log.transports[0].setLevel( this.parent.verbose );
+
+	conductor_admin_port		= this.parent.port;
+
+	if ( process.stdout.isTTY || this.parent.colorAlways ) {
+	    print.colorAlways();
+	}
 	handler.call(this, ...args );
     };
 }
@@ -37,6 +42,7 @@ async function main ( args ) {
     commander
 	.version( config.version )
 	.option('-q, --quiet', 'suppress all printing except for final result', false )
+	.option('--color-always', 'use terminal color codes even when stdout is not TTY', false)
 	.option('-v, --verbose', 'increase logging verbosity', increaseTotal, 0)
 	.option('-p, --port <port>', 'admin port', 33001 )
 
@@ -48,13 +54,13 @@ async function main ( args ) {
 		let results;
 
 		if ( ["dna", "dnas"].includes(type) ) {
-		    results = await admin.listDnas();
+		    results = await AdminAPI.list_dnas();
 		}
 		else if ( ["cell", "cells"].includes(type) ) {
-		    results = await admin.listCellIds();
+		    results = await AdminAPI.list_cell_ids();
 		}
 		else if ( ["app", "apps"].includes(type) ) {
-		    results = await admin.listActiveApps();
+		    results = await AdminAPI.list_active_apps();
 		}
 		else {
 		    throw new Error(`Unknown type: ${type}, valid types are [dnas, cells, apps]`);
@@ -70,7 +76,7 @@ async function main ( args ) {
 	.action( prelude(function () {
 	    execute_admin(async (AdminAPI) => {
 		const pubkey		= await AdminAPI.generate_pubkey();
-		console.log( pubkey.toString("base64") );
+		print( pubkey.toString("base64") );
 	    });
 	}));
 
@@ -123,30 +129,24 @@ async function main ( args ) {
 	.description("attach app to TCP port")
 	.action( prelude(function ( port ) {
 	    execute_admin(async (AdminAPI) => {
-		let resp = await AdminAPI.attach_interface( port );
+		let resp		= await AdminAPI.attach_interface( port );
 
 		print(`This port (${resp.port}) is now something`);
 	    });
 	}));
 
     commander
-	.command("call-zome <port> <dna> <agent>")
+	.command("call-zome <port> <dna> <agent> <zome> <function>")
 	.description("call a zome function")
-	.action( prelude(function ( port, dna, agent ) {
-	    execute_app( port, async function (client) {
+	.action( prelude(function ( port, dna, agent, zome_name, fn_name ) {
+	    execute_app( port, async (AppAPI) => {
 		let dna_hash		= Buffer.from( dna, "base64" );
 		let agent_pubkey	= Buffer.from( agent, "base64" );
 
-		let call_spec = {
-		    "cell_id": [ dna_hash, agent_pubkey ],
-		    "zome_name": "hha",
-		    "fn_name": "get_happs",
-		    "payload": null,
-		    "provenance": agent_pubkey, // AgentPubKey
-		};
+		log.normal("Calling zome function: %s %s", zome_name, fn_name );
+		let resp		= await AppAPI.call_zome_function( dna_hash, agent_pubkey, zome_name, fn_name );
 
-		let resp = await client.callZome( call_spec );
-		console.log( resp );
+		print("%s", JSON.stringify(resp, null, 4) );
 	    });
 	}));
 
@@ -155,16 +155,23 @@ async function main ( args ) {
 
 
 async function run_and_close_socket (async_fn, client) {
+    let failed				= false;
     try {
 	await async_fn( client );
     } catch ( err ) {
-	if ( err instanceof ControlledError )
+	if ( err instanceof ControlledError ) {
+	    failed			= 2;
 	    print( err.message );
-	else
-	    console.log("\x1b[91mFailed during %s: %s\x1b[0m", client.constructor.name, err instanceof Error ? String(err) : JSON.stringify( err ) );
+	}
+	else {
+	    failed			= 1;
+	    console.error("\x1b[91mFailed during %s: %s\x1b[0m", client.constructor.name, err instanceof Error ? String(err) : JSON.stringify( err ) );
+	}
     } finally {
 	client.api.client.socket.terminate();
 	await client.api.client.awaitClose();
+
+	process.exit( failed ? failed : 0 );
     }
 }
 
@@ -173,9 +180,9 @@ async function execute_admin (async_fn) {
     run_and_close_socket( async_fn, await admin_connection( conductor_admin_port ) );
 }
 
-async function execute_app (async_fn) {
+async function execute_app (port, async_fn) {
     log.info("Execute procedure with AppAPI");
-    run_and_close_socket( async_fn, await app_connection( conductor_admin_port ) );
+    run_and_close_socket( async_fn, await app_connection( port ) );
 }
 
 
