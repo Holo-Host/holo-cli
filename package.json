@@ -1,29 +1,28 @@
 {
   "name": "@holo-host/holo-cli",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "description": "Command line tool for Holo developers",
-  "main": "bin/holo",
-  "scripts": {
-    "test:unit:call": "DEBUG_LEVEL=debug mocha ./tests/unit/test_cli_call.js",
-    "test:unit:admin": "DEBUG_LEVEL=debug mocha ./tests/unit/test_cli_admin.js",
-    "test:e2e": "mocha ./tests/e2e/"
+  "main": "src/index.js",
+  "bin": {
+    "conductor-cli": "./bin/conductor"
   },
-  "author": "Matthew Brisebois",
-  "license": "ISC",
+  "scripts": {
+    "test": "mocha ./tests/unit",
+    "test-debug": "LOG_LEVEL=silly mocha ./tests/unit"
+  },
+  "author": "Holo Ltd.",
+  "contributors": [
+    "Matthew Brisebois <matthew.brisebois@holo.host>"
+  ],
+  "license": "CAL-1.0",
+  "dependencies": {
+    "@holochain/conductor-api": "0.0.1-dev.14",
+    "@whi/printf": "^1.0.0",
+    "@whi/stdlog": "^0.3.4",
+    "commander": "^6.2.0"
+  },
   "devDependencies": {
     "chai": "^4.2.0",
-    "mocha": "^6.2.0"
-  },
-  "dependencies": {
-    "@whi/printf": "^1.0.0",
-    "@whi/stdlog": "^0.3.0",
-    "args2json": "0.0.3",
-    "commander": "^2.20.0",
-    "download-file": "^0.1.5",
-    "rpc-websockets": "^4.5.1",
-    "sprintf-js": "^1.1.2"
-  },
-  "engines": {
-    "node": ">=12.4.0"
+    "mocha": "^8.2.1"
   }
 }
