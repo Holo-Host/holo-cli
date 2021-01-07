@@ -15,6 +15,14 @@
     "Matthew Brisebois <matthew.brisebois@holo.host>"
   ],
   "license": "CAL-1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Holo-Host/holo-cli"
+  },
+  "files": [
+    "README.md",
+    "src/*.js"
+  ],
   "dependencies": {
     "@holochain/conductor-api": "0.0.1-dev.14",
     "@whi/printf": "^1.0.0",
