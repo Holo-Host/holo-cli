@@ -120,10 +120,10 @@ async function main ( args ) {
 			  print("Installed DNAs for App '%s':", installed_app.installed_app_id );
 
 			  await AdminAPI.activate_app( app.app_name );
-			  print("Activated App '%s':", app.installed_app_id );
+			  print("Activated App '%s':", installed_app.installed_app_id );
 
-			  await AdminAPI.attach_interface( app.app_port );
-			  print("Attached port '%s':", app.app_port );
+			  const { port } = await AdminAPI.attach_interface( app.app_port );
+			  print("Attached %s to port '%s':", installed_app.installed_app_id , port );
 			}
 		}
 	    });
