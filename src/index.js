@@ -104,7 +104,7 @@ async function main ( args ) {
 		}
 		else {
 			// installs list of apps provided in app-config.yml file
-			const apps = yaml.safeLoad(fs.readFileSync(config, 'utf8'));
+			const apps = yaml.load(fs.readFileSync(config, 'utf8'));
 			for (let app of apps) {
 			  const dna_config = app.dnas.reduce((obj, dnaPath) => {
 				const path = dnaPath.split("/");
@@ -113,6 +113,7 @@ async function main ( args ) {
 				obj[nick] = dnaPath;
 				return obj;
 			  }, {});
+
 			  const installed_app = await AdminAPI.install_app(app.app_name, agent_pubkey, dna_config);
 			  
 			  AdminAPI.print_cell_data( installed_app.cell_data );
