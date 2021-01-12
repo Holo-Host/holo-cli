@@ -3,6 +3,8 @@ const log				= require('@whi/stdlog')("conductor-cli", {
 });
 module.exports.log			= log;
 
+const fs                = require('fs');
+const yaml              = require('js-yaml');
 const path				= require('path');
 const crypto				= require('crypto');
 const print				= require('@whi/printf');
@@ -77,6 +79,52 @@ async function main ( args ) {
 	    execute_admin(async (AdminAPI) => {
 		const pubkey		= await AdminAPI.generate_pubkey();
 		print( pubkey.toString("base64") );
+	    });
+	}));
+
+	commander
+	.command("install-config <path/to/app-config.yml>")
+	.description("install apps in config.yml")
+	.option('-a, --agent [pubkey]', 'create a new agent for installed app', false)
+	.action( prelude(function ( config ) {
+	    execute_admin(async (AdminAPI) => {
+		let agent_pubkey;
+
+		if ( this.agent === false ) {
+		    agent_pubkey	= await AdminAPI.generate_pubkey();
+		    log.normal("Using Agent (%s) for install", agent_pubkey.toString("base64") );
+		}
+		else {
+		    agent_pubkey	= Buffer.from( this.agent, "base64" );
+		    log.normal("Using Agent (%s) for install", this.agent );
+		}
+
+		if ( config === false ) {
+			throw new Error('Must provide a path to <app-config.yml> to specify apps to install.')
+		}
+		else {
+			// installs list of apps provided in app-config.yml file
+			const apps = yaml.safeLoad(fs.readFileSync(config, 'utf8'));
+			for (let app of apps) {
+			  const dna_config = app.dnas.reduce((obj, dnaPath) => {
+				const path = dnaPath.split("/");
+				const buildName = path[path.length - 1];
+				const nick = buildName.split('.dna')[0];
+				obj[nick] = dnaPath;
+				return obj;
+			  }, {});
+			  const installed_app = await AdminAPI.install_app(app.app_name, agent_pubkey, dna_config);
+			  
+			  AdminAPI.print_cell_data( installed_app.cell_data );
+			  print("Installed DNAs for App '%s':", installed_app.installed_app_id );
+
+			  await AdminAPI.activate_app( app.app_name );
+			  print("Activated App '%s':", app.installed_app_id );
+
+			  await AdminAPI.attach_interface( app.app_port );
+			  print("Attached port '%s':", app.app_port );
+			}
+		}
 	    });
 	}));
 

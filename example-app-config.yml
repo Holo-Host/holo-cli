@@ -1,0 +1,8 @@
+- dnas:
+  - ./test.dna.gz
+  - ./test2.dna.gz
+  app_name: hc-id
+
+- dnas:
+  - test.dna.gz
+  app_name: core-id
