@@ -83,7 +83,7 @@ async function main ( args ) {
 	}));
 
 	commander
-	.command("install-config <path/to/app-config.yml>")
+	.command("setup-apps <path/to/app-config.yml>")
 	.description("install apps in config.yml")
 	.option('-a, --agent [pubkey]', 'create a new agent for installed app', false)
 	.action( prelude(function ( config ) {
