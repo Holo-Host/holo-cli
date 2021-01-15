@@ -122,6 +122,7 @@ async function main ( args ) {
 			  await AdminAPI.activate_app( app.app_name );
 			  print("Activated App '%s':", installed_app.installed_app_id );
 
+			  const appPort = app.app_port || 33001;
 			  const { port } = await AdminAPI.attach_interface( app.app_port );
 			  print("Attached %s to port '%s':", installed_app.installed_app_id , port );
 			}
