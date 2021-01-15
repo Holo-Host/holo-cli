@@ -107,10 +107,9 @@ async function main ( args ) {
 			const apps = yaml.load(fs.readFileSync(config, 'utf8'));
 			for (let app of apps) {
 			  const dna_config = app.dnas.reduce((obj, dnaPath) => {
-				const path = dnaPath.split("/");
-				const buildName = path[path.length - 1];
-				const nick = buildName.split('.dna')[0];
-				obj[nick] = dnaPath;
+				const index		= dnaPath.lastIndexOf(":");
+				const nick		= dnaPath.slice( index + 1 );
+				obj[nick]		= dnaPath.slice( 0, index );
 				return obj;
 			  }, {});
 
