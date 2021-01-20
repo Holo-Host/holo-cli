@@ -5,9 +5,9 @@ name: Node.js CI
 
 on:
   push:
-    branches: [ master, develop, nix-shell-cache-ci-2020-01-20 ]
+    branches: [ master, develop ]
   pull_request:
-    branches: [ master, develop, nix-shell-cache-ci-2020-01-20 ]
+    branches: [ master, develop ]
 
 jobs:
   build:
@@ -19,15 +19,19 @@ jobs:
         node-version: [14.x]
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Install Nix
+    - name: Fetch source code
+      uses: actions/checkout@v2
+    - name: Use Nix
       uses: cachix/install-nix-action@v12
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
-    - run: |
+    - name: Configure Nix substituters
+      run: |
         set -xe
         mkdir -p ~/.config/nix/
-        cp ./nix.conf ~/.config/nix/
+        cp ./tests/nix.conf ~/.config/nix/
+    - name: Prepare Nix environment
+      run: nix-shell --run echo
     - run: nix-shell --command "lair-keystore --version"
